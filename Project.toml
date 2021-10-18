@@ -3,6 +3,9 @@ uuid = "89460df9-9597-466a-a272-0b57177b2cb0"
 authors = ["Davi Barreira <davisbarreira@gmail.com> and contributors"]
 version = "0.1.0"
 
+[deps]
+ReadableRegex = "cbbcb084-453d-4c4c-b292-e315607ba6a4"
+
 [compat]
 julia = "1"
 
