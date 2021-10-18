@@ -19,6 +19,23 @@ function skiplines(io::IO, n)
 end
 
 """
+    countlines(file::String)
+Returns the number of lines in a file.
+"""
+function countlines(file::String; limit=10_000)
+    io = open(file, "r");
+    i = 0
+    while i <= limit
+        if eof(io)
+            break
+        end
+        i += read(io, Char) === '\n'
+    end
+    close(io)
+    return i
+end
+
+"""
     writetext(file::String, text::String, linenumber::Integer, endline=true)
 Writes a `text` to a `file` in an specific `linenumber`. By default,
 the text is appended at the end of the line (`endline = true`). If
@@ -46,9 +63,11 @@ end
 """
     insertline(file::String, text::String, linenumber::Integer; method=:above)
 Inserts a line of `text` in a `file` at the specified `linenumber`.
-Accepts `method=:above` (default) or `method=:below`, to specify
-whether the text will be placed above or below, e.g,
+Accepts `method=:above` (default), `method=:below` or `method=:replace`, to specify
+whether the text will be placed above, below or replace the current line.
+Here is an example,
 consider a text file containing:
+
 ```
 Text file example
 Current text it here
