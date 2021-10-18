@@ -43,12 +43,27 @@ the text is appended at the end of the line (`endline = true`). If
 the beggining of the line.
 """
 function writetext(file::String, text::String, linenumber::Integer, endline=true)
-    f = open(file, "r+");
     if endline
+        writetext(file, text, linenumber, Inf)
+    else
+        writetext(file, text, linenumber, 1)
+    end
+end
+
+"""
+    writetext(file::String, text::String, linenumber::Integer, endline=true)
+Writes a `text` to a `file` in an specific `linenumber`. By default,
+the text is appended at the end of the line (`endline = true`). If
+`endline` is set to false, then the text is actually appended in
+the beggining of the line.
+"""
+function writetext(file::String, text::String, linenumber::Integer, at=Inf)
+    f = open(file, "r+");
+    if at == Inf
         skiplines(f, linenumber);
         skip(f, -1)
     else
-        skiplines(f, linenumber - 1);
+        skiplines(f, linenumber - 2 + at);
     end
     mark(f)
     buf = IOBuffer()
@@ -58,6 +73,13 @@ function writetext(file::String, text::String, linenumber::Integer, endline=true
     print(f, text);
     write(f, buf)
     close(f)
+end
+
+"""
+    writetext(file::String, text::String, linenumber::Integer, endline=true)
+"""
+function writetext(file::String, text::String, linenumber=:last, endline=true)
+    writetext(file, text, countlines(file), endline)
 end
 
 """
@@ -110,5 +132,22 @@ Inserts a line of `text` in a `file` below the `linenumber`.
 function insertlinebelow(file::String, text::String, linenumber::Integer)
     writetext(file, "\n" * text, linenumber)
 end
+
+"""
+    insertlinereplace(file::String, text::String, linenumber::Integer)
+Inserts a line of `text` in a `file` replacing the current line.
+"""
+function insertlinereplace(file::String, text::String, linenumber::Integer)
+    writetext(file, "\n" * text, linenumber)
+end
+
+"""
+    insertlineforce(file::String, text::String, linenumber::Integer)
+Inserts a line of `text` in a `file` below the `linenumber`.
+"""
+function insertemptylines(file::String, text::String, qtd::Integer)
+    writetext(file, "\n" * text, linenumber)
+end
+
 
 end
