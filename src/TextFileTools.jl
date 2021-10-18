@@ -63,10 +63,19 @@ function writetext(file::String, text::String, linenumber::Integer, at=Inf)
 end
 
 """
-    writetext(file::String, text::String, linenumber::Integer, endline=true)
+    writetext(file::String, text::String, linenumber=:last; at=Inf)
+Writes text to the last line.
 """
 function writetext(file::String, text::String, linenumber=:last; at=Inf)
-    writetext(file, text, countlines(file), at=at)
+    @assert linenumber == :last
+    if at == Inf
+        open(file, "a+") do f
+            write(f, text)
+        end
+    else
+        # !!This is not efficient. Should be improved
+        writetext(file, text, countlines(file), at=at)
+    end
 end
 
 """
@@ -100,6 +109,10 @@ function insertline(file::String, text::String, linenumber::Integer; method=:abo
     end
 end
 
+"""
+    insertline(file::String, text::String, linenumber=:last; method=:above)
+Inserts line in the last line of the file.
+"""
 function insertline(file::String, text::String, linenumber=:last; method=:below)
     @assert linenumber == :last
     if method == :above
