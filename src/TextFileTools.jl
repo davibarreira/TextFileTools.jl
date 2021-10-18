@@ -35,27 +35,14 @@ function countlines(file::String; limit=10_000)
     return i
 end
 
-"""
-    writetext(file::String, text::String, linenumber::Integer, endline=true)
-Writes a `text` to a `file` in an specific `linenumber`. By default,
-the text is appended at the end of the line (`endline = true`). If
-`endline` is set to false, then the text is actually appended in
-the beggining of the line.
-"""
-function writetext(file::String, text::String, linenumber::Integer, endline=true)
-    if endline
-        writetext(file, text, linenumber, Inf)
-    else
-        writetext(file, text, linenumber, 1)
-    end
-end
 
 """
-    writetext(file::String, text::String, linenumber::Integer, endline=true)
-Writes a `text` to a `file` in an specific `linenumber`. By default,
-the text is appended at the end of the line (`endline = true`). If
-`endline` is set to false, then the text is actually appended in
-the beggining of the line.
+    writetext(file::String, text::String, linenumber::Integer, at=Inf)
+Writes a `text` to a `file` in an specific `linenumber` and `at` an specific location.
+By default, the text is appended at the end of the line (`at = Inf`). If
+`at = 1`, then the text is actually appended in the beggining of the line.
+You might also want to add it to an specific position, e.g.
+`at = 2`, which will append the text after the first `Char`.
 """
 function writetext(file::String, text::String, linenumber::Integer, at=Inf)
     f = open(file, "r+");
@@ -63,7 +50,7 @@ function writetext(file::String, text::String, linenumber::Integer, at=Inf)
         skiplines(f, linenumber);
         skip(f, -1)
     else
-        skiplines(f, linenumber - 2 + at);
+        skiplines(f, linenumber - 1);
     end
     mark(f)
     buf = IOBuffer()
@@ -78,8 +65,8 @@ end
 """
     writetext(file::String, text::String, linenumber::Integer, endline=true)
 """
-function writetext(file::String, text::String, linenumber=:last, endline=true)
-    writetext(file, text, countlines(file), endline)
+function writetext(file::String, text::String, linenumber=:last; at=Inf)
+    writetext(file, text, countlines(file), at=at)
 end
 
 """
@@ -113,15 +100,26 @@ function insertline(file::String, text::String, linenumber::Integer; method=:abo
     end
 end
 
+function insertline(file::String, text::String, linenumber=:last; method=:below)
+    @assert linenumber == :last
+    if method == :above
+        insertlineabove(file, text, countlines(file))
+    elseif method == :below
+        insertlinebelow(file, text, countlines(file))
+    else
+        throw(ArgumentError("Invalid method. Use either `method=:above` or `method=:below`."))
+    end
+end
+
 """
     insertlineabove(file::String, text::String, linenumber::Integer)
 Inserts a line of `text` in a `file` above the `linenumber`.
 """
 function insertlineabove(file::String, text::String, linenumber::Integer)
     if linenumber == 1
-        writetext(file, text * "\n", linenumber, false)
+        writetext(file, text * "\n", linenumber, 1)
     else
-        writetext(file, "\n" * text, linenumber - 1)
+        writetext(file, "\n" * text, linenumber - 1, Inf)
     end
 end
 
@@ -130,7 +128,7 @@ end
 Inserts a line of `text` in a `file` below the `linenumber`.
 """
 function insertlinebelow(file::String, text::String, linenumber::Integer)
-    writetext(file, "\n" * text, linenumber)
+    writetext(file, "\n" * text, linenumber, Inf)
 end
 
 """
