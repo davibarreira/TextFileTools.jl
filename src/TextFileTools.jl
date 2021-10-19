@@ -35,7 +35,7 @@ function writetext(file::String, text::String, linenumber::Integer; at=Inf, meth
         skip(f, -1)
     else
         skiplines(f, linenumber - 1);
-        skip
+        skip(f, at - 1)
     end
     if method == :insert
         write(f, text)
