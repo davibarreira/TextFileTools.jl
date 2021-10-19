@@ -6,6 +6,7 @@ using ReadableRegex
 
 export writetext, insertline
 
+
 """
     skiplines(io::IO, n)
 Helper function for skipping lines when reading a file.
@@ -13,7 +14,7 @@ Helper function for skipping lines when reading a file.
 function skiplines(io::IO, n)
     i = 1
     while i <= n
-        eof(io) && error("File contains less than $n lines")
+        eof(io) && error("File contains less than $(n + 1) lines")
         i += read(io, Char) === '\n'
     end
 end
@@ -22,18 +23,19 @@ end
     countlines(file::String)
 Returns the number of lines in a file.
 """
-function countlines(file::String; limit=10_000)
-    io = open(file, "r");
-    i = 0
-    while i <= limit
-        if eof(io)
-            break
-        end
-        i += read(io, Char) === '\n'
-    end
-    close(io)
-    return i
-end
+#= function countlines(file::String; limit=10_000) =#
+#=     io = open(file, "r"); =#
+#=     i = 0 =#
+#=     while i <= limit =#
+#=         if eof(io) =#
+#=             break =#
+#=         end =#
+#=         i += read(io, Char) === '\n' =#
+#=     end =#
+#=     close(io) =#
+#=     return i =#
+#= end =#
+
 
 
 """
@@ -44,7 +46,7 @@ By default, the text is appended at the end of the line (`at = Inf`). If
 You might also want to add it to an specific position, e.g.
 `at = 2`, which will append the text after the first `Char`.
 """
-function writetext(file::String, text::String, linenumber::Integer, at=Inf)
+function writetext(file::String, text::String, linenumber::Integer; at=Inf)
     f = open(file, "r+");
     if at == Inf
         skiplines(f, linenumber);
@@ -83,6 +85,8 @@ end
 Inserts a line of `text` in a `file` at the specified `linenumber`.
 Accepts `method=:above` (default), `method=:below` or `method=:replace`, to specify
 whether the text will be placed above, below or replace the current line.
+**Important**, if you want to add a line at the end of the file (after the last line),
+use `insertline(file::String, text::String, :lasts)` instead.
 Here is an example,
 consider a text file containing:
 
@@ -118,7 +122,9 @@ function insertline(file::String, text::String, linenumber=:last; method=:below)
     if method == :above
         insertlineabove(file, text, countlines(file))
     elseif method == :below
-        insertlinebelow(file, text, countlines(file))
+        open(file, "a+") do f
+            write(f, "\n" * text)
+        end
     else
         throw(ArgumentError("Invalid method. Use either `method=:above` or `method=:below`."))
     end
@@ -130,18 +136,21 @@ Inserts a line of `text` in a `file` above the `linenumber`.
 """
 function insertlineabove(file::String, text::String, linenumber::Integer)
     if linenumber == 1
-        writetext(file, text * "\n", linenumber, 1)
+        writetext(file, text * "\n", linenumber, at=1)
     else
-        writetext(file, "\n" * text, linenumber - 1, Inf)
+        writetext(file, "\n" * text, linenumber - 1, at=Inf)
     end
 end
 
 """
     insertlinebelow(file::String, text::String, linenumber::Integer)
 Inserts a line of `text` in a `file` below the `linenumber`.
+This does not work if the linenumber is the last line. Look
+`function insertline(file::String, text::String, linenumber=:last; method=:below)`
+instead.
 """
 function insertlinebelow(file::String, text::String, linenumber::Integer)
-    writetext(file, "\n" * text, linenumber, Inf)
+    writetext(file, "\n" * text, linenumber, at=Inf)
 end
 
 """
