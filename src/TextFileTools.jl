@@ -19,24 +19,6 @@ function skiplines(io::IO, n)
     end
 end
 
-"""
-    countlines(file::String)
-Returns the number of lines in a file.
-"""
-#= function countlines(file::String; limit=10_000) =#
-#=     io = open(file, "r"); =#
-#=     i = 0 =#
-#=     while i <= limit =#
-#=         if eof(io) =#
-#=             break =#
-#=         end =#
-#=         i += read(io, Char) === '\n' =#
-#=     end =#
-#=     close(io) =#
-#=     return i =#
-#= end =#
-
-
 
 """
     writetext(file::String, text::String, linenumber::Integer, at=Inf)
@@ -53,6 +35,7 @@ function writetext(file::String, text::String, linenumber::Integer; at=Inf)
         skip(f, -1)
     else
         skiplines(f, linenumber - 1);
+        skip
     end
     mark(f)
     buf = IOBuffer()
@@ -81,9 +64,9 @@ function writetext(file::String, text::String, linenumber=:last; at=Inf)
 end
 
 """
-    insertline(file::String, text::String, linenumber::Integer; method=:above)
+    insertline(file::String, text::String, linenumber::Integer; position=:above)
 Inserts a line of `text` in a `file` at the specified `linenumber`.
-Accepts `method=:above` (default), `method=:below` or `method=:replace`, to specify
+Accepts `position=:above` (default), `position=:below` or `position=:replace`, to specify
 whether the text will be placed above, below or replace the current line.
 **Important**, if you want to add a line at the end of the file (after the last line),
 use `insertline(file::String, text::String, :lasts)` instead.
@@ -103,30 +86,30 @@ Text file example
 Current text it here
 ```
 """
-function insertline(file::String, text::String, linenumber::Integer; method=:above)
-    if method == :above
+function insertline(file::String, text::String, linenumber::Integer; position=:above)
+    if position == :above
         insertlineabove(file, text, linenumber)
-    elseif method == :below
+    elseif position == :below
         insertlinebelow(file, text, linenumber)
     else
-        throw(ArgumentError("Invalid method. Use either `method=:above` or `method=:below`."))
+        throw(ArgumentError("Invalid position. Use either `position=:above` or `position=:below`."))
     end
 end
 
 """
-    insertline(file::String, text::String, linenumber=:last; method=:above)
+    insertline(file::String, text::String, linenumber=:last; position=:above)
 Inserts line in the last line of the file.
 """
-function insertline(file::String, text::String, linenumber=:last; method=:below)
+function insertline(file::String, text::String, linenumber=:last; position=:below)
     @assert linenumber == :last
-    if method == :above
+    if position == :above
         insertlineabove(file, text, countlines(file))
-    elseif method == :below
+    elseif position == :below
         open(file, "a+") do f
             write(f, "\n" * text)
         end
     else
-        throw(ArgumentError("Invalid method. Use either `method=:above` or `method=:below`."))
+        throw(ArgumentError("Invalid position. Use either `position=:above` or `position=:below`."))
     end
 end
 
@@ -146,7 +129,7 @@ end
     insertlinebelow(file::String, text::String, linenumber::Integer)
 Inserts a line of `text` in a `file` below the `linenumber`.
 This does not work if the linenumber is the last line. Look
-`function insertline(file::String, text::String, linenumber=:last; method=:below)`
+`function insertline(file::String, text::String, linenumber=:last; position=:below)`
 instead.
 """
 function insertlinebelow(file::String, text::String, linenumber::Integer)
