@@ -4,7 +4,7 @@
 module TextFileTools
 using ReadableRegex
 
-export writetext, insertline
+export writetext, insertline, deletetext
 
 
 """
@@ -21,14 +21,14 @@ end
 
 
 """
-    writetext(file::String, text::String, linenumber::Integer, at=Inf)
+    writetext(file::String, text::String, linenumber::Int, at=Inf)
 Writes a `text` to a `file` in an specific `linenumber` and `at` an specific location.
 By default, the text is appended at the end of the line (`at = Inf`). If
 `at = 1`, then the text is actually appended in the beggining of the line.
 You might also want to add it to an specific position, e.g.
 `at = 2`, which will append the text after the first `Char`.
 """
-function writetext(file::String, text::String, linenumber::Integer; at=Inf, method=:append)
+function writetext(file::String, text::String, linenumber::Int; at=Inf, method=:append)
     f = open(file, "r+");
     if at == Inf
         skiplines(f, linenumber);
@@ -40,13 +40,14 @@ function writetext(file::String, text::String, linenumber::Integer; at=Inf, meth
     if method == :insert
         write(f, text)
     elseif method == :append
-        mark(f)
+        mark(f)          # store where the buffer f is right now
         buf = IOBuffer()
-        write(buf, f)
-        seekstart(buf)
-        reset(f)
-        print(f, text);
-        write(f, buf)
+        write(buf, f)    # writes everything from where f is to the end of the file
+        seekstart(buf)   # sends the buffer to the start of it
+        reset(f)         # sends the buffer of f to when used mark(f)
+        print(f, text);  # writes `text`
+        write(f, buf)    # writes the buf to the rest of f after the text.
+        close(buf)
     else
         throw(ArgumentError("Incorret `method`. It should be either `method=:append` or `method=:insert`."))
     end 
@@ -70,7 +71,35 @@ function writetext(file::String, text::String, linenumber=:last; at=Inf)
 end
 
 """
-    insertline(file::String, text::String, linenumber::Integer; position=:above)
+    deletetext(file::String, nchar::Int, linenumber::Int; at=1)
+Deletes a total of `nchar` starting `at` an specified
+position and an specified `linenumber`. By default,
+`at=1`, which means that `deletetext(file, 10, 1)` will
+delete 10 characters from left to right, starting at
+the beggining of line 1.
+"""
+function deletetext(file::String, nchar::Int, linenumber::Int; at=1)
+    f = open(file, "r+");
+    if at == Inf
+        skiplines(f, linenumber);
+        skip(f, -1)
+    else
+        skiplines(f, linenumber - 1);
+        skip(f, at - 1)
+    end
+    mark(f)
+    buf = IOBuffer()
+    skip(f, nchar)
+    write(buf, f)
+    seekstart(buf)
+    reset(f)
+    write(f, buf)
+    close(buf)
+    close(f)
+end
+
+    """
+    insertline(file::String, text::String, linenumber::Int; position=:above)
 Inserts a line of `text` in a `file` at the specified `linenumber`.
 Accepts `position=:above` (default), `position=:below` or `position=:replace`, to specify
 whether the text will be placed above, below or replace the current line.
@@ -92,71 +121,71 @@ Text file example
 Current text it here
 ```
 """
-function insertline(file::String, text::String, linenumber::Integer; position=:above)
-    if position == :above
-        insertlineabove(file, text, linenumber)
-    elseif position == :below
+    function insertline(file::String, text::String, linenumber::Int; position=:above)
+        if position == :above
+            insertlineabove(file, text, linenumber)
+        elseif position == :below
         insertlinebelow(file, text, linenumber)
     else
         throw(ArgumentError("Invalid position. Use either `position=:above` or `position=:below`."))
+        end
     end
-end
 
 """
     insertline(file::String, text::String, linenumber=:last; position=:above)
 Inserts line in the last line of the file.
 """
-function insertline(file::String, text::String, linenumber=:last; position=:below)
-    @assert linenumber == :last
-    if position == :above
-        insertlineabove(file, text, countlines(file))
-    elseif position == :below
+    function insertline(file::String, text::String, linenumber=:last; position=:below)
+        @assert linenumber == :last
+        if position == :above
+            insertlineabove(file, text, countlines(file))
+        elseif position == :below
         open(file, "a+") do f
             write(f, "\n" * text)
         end
     else
         throw(ArgumentError("Invalid position. Use either `position=:above` or `position=:below`."))
-    end
 end
+    end
 
-"""
-    insertlineabove(file::String, text::String, linenumber::Integer)
+    """
+    insertlineabove(file::String, text::String, linenumber::Int)
 Inserts a line of `text` in a `file` above the `linenumber`.
 """
-function insertlineabove(file::String, text::String, linenumber::Integer)
-    if linenumber == 1
-        writetext(file, text * "\n", linenumber, at=1)
-    else
-        writetext(file, "\n" * text, linenumber - 1, at=Inf)
+    function insertlineabove(file::String, text::String, linenumber::Int)
+        if linenumber == 1
+            writetext(file, text * "\n", linenumber, at=1)
+        else
+            writetext(file, "\n" * text, linenumber - 1, at=Inf)
+        end
     end
-end
 
-"""
-    insertlinebelow(file::String, text::String, linenumber::Integer)
+    """
+    insertlinebelow(file::String, text::String, linenumber::Int)
 Inserts a line of `text` in a `file` below the `linenumber`.
 This does not work if the linenumber is the last line. Look
 `function insertline(file::String, text::String, linenumber=:last; position=:below)`
 instead.
 """
-function insertlinebelow(file::String, text::String, linenumber::Integer)
-    writetext(file, "\n" * text, linenumber, at=Inf)
-end
+    function insertlinebelow(file::String, text::String, linenumber::Int)
+        writetext(file, "\n" * text, linenumber, at=Inf)
+    end
 
-"""
-    insertlinereplace(file::String, text::String, linenumber::Integer)
+    """
+    insertlinereplace(file::String, text::String, linenumber::Int)
 Inserts a line of `text` in a `file` replacing the current line.
 """
-function insertlinereplace(file::String, text::String, linenumber::Integer)
-    writetext(file, "\n" * text, linenumber)
-end
+    function insertlinereplace(file::String, text::String, linenumber::Int)
+        writetext(file, "\n" * text, linenumber)
+    end
 
-"""
-    insertlineforce(file::String, text::String, linenumber::Integer)
+    """
+    insertlineforce(file::String, text::String, linenumber::Int)
 Inserts a line of `text` in a `file` below the `linenumber`.
 """
-function insertemptylines(file::String, text::String, qtd::Integer)
-    writetext(file, "\n" * text, linenumber)
-end
+    function insertemptylines(file::String, text::String, qtd::Int)
+        writetext(file, "\n" * text, linenumber)
+    end
 
 
 end
