@@ -28,7 +28,7 @@ By default, the text is appended at the end of the line (`at = Inf`). If
 You might also want to add it to an specific position, e.g.
 `at = 2`, which will append the text after the first `Char`.
 """
-function writetext(file::String, text::String, linenumber::Integer; at=Inf)
+function writetext(file::String, text::String, linenumber::Integer; at=Inf, method=:append)
     f = open(file, "r+");
     if at == Inf
         skiplines(f, linenumber);
@@ -37,13 +37,19 @@ function writetext(file::String, text::String, linenumber::Integer; at=Inf)
         skiplines(f, linenumber - 1);
         skip
     end
-    mark(f)
-    buf = IOBuffer()
-    write(buf, f)
-    seekstart(buf)
-    reset(f)
-    print(f, text);
-    write(f, buf)
+    if method == :insert
+        write(f, text)
+    elseif method == :append
+        mark(f)
+        buf = IOBuffer()
+        write(buf, f)
+        seekstart(buf)
+        reset(f)
+        print(f, text);
+        write(f, buf)
+    else
+        throw(ArgumentError("Incorret `method`. It should be either `method=:append` or `method=:insert`."))
+    end 
     close(f)
 end
 
