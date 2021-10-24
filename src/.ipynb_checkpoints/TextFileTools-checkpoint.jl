@@ -12,7 +12,6 @@ TODO:
 - deleteuntil
 - deleteafter
 - insertline with `force=true` to add line when
-- pushfiles
 it exceeds the current limit.
 """
 
